@@ -1,0 +1,20 @@
+You will need the following files in your path (or modify MediaOS.psm1 appropriately):
+
+x264
+x265
+mkvinfo
+mkvpropedit
+mkvmerge
+mkvextract
+MediaInfo_cli (Windows)/mediainfo (Linux)
+ffmpeg
+ffprobe
+dovi_tool
+
+You will also need to modify the encode, tmp and mux dirs in the MediaOS script.
+
+MediaOS and MediaInfo go into the Powershell modules folder.
+
+You may or may not want to run RetitleMKV.ps1 (last step in the encode script).
+Also, this is currently set up how I rename files, with info about the crf, noise supression, 
+and dolby vision as part of the name.
