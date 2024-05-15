@@ -18,3 +18,13 @@ MediaOS and MediaInfo go into the Powershell modules folder.
 You may or may not want to run RetitleMKV.ps1 (last step in the encode script).
 Also, this is currently set up how I rename files, with info about the crf, noise supression, 
 and dolby vision as part of the name.
+
+Mel and Fel dolby vision are done using dovi_tool.  I don't know for 100% certain that 
+Fel dolby vision will play properly with a player that can play the full 12-bit video (I use NVidia shield, which
+only plays the Mel parts of the dolby vision).  However, I am using a method borrowed from
+BD Rebuilder (https://www.videohelp.com/software/BD-Rebuilder), which is to create a chapter file 
+to force all the I-frames in the encoded video to align with the I-frames in the FEL layer.  This is
+what BD-Rebuilder does when it downsamples a blu-ray.  The only difference is that it keeps the 2 layers as separate
+video streams, because that's what a blu-ray wants, whereas this script creates a 07.06 EL_RPU that is muxed with the
+newly encoded video.
+
