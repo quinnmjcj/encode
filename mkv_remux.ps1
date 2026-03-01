@@ -1,3 +1,4 @@
+#!/usr/bin/pwsh
 param (
  [Parameter(Mandatory = $true, Position = 0)]
  [string]$input_video,
@@ -13,6 +14,7 @@ param (
  [switch]$chatty=$false,
  [switch]$bt709=$false,
  [switch]$all=$false,              # Copy all subtitles and audio tracks
+ [string]$maxcll="",
  [int]$length=0
 )
 
@@ -120,7 +122,7 @@ function SubOut
     if ($name -and $name -ne "") {
         MergeOut "--track-name"
         $name = FixName($name)
-        MergeOut ($tno + ":" + $name)  
+        MergeOut ($tno + ":" + $name)
     }
     MergeOut "--default-track"
     $tmp = if ($def) { "yes" } else { "no" }
@@ -135,7 +137,7 @@ $info = & $global:mkvinfo $infile
 $video_info = Get_Media_Info($infile)
 
 
-$subidx = 0   
+$subidx = 0
 $audidx = 0               # 0 is the main channel audio
 $state = 0
 $width = Get_Video_Width $video_info
@@ -151,7 +153,7 @@ $subname = @("")
 $sublang = @("")
 $subdef = @(0)
 
-while ($subdef.Count -lt 60) {
+while ($subdef.Count -lt 200) {
     $subtitles += @(0)
     $subname += @("")
     $sublang += @("")
@@ -166,7 +168,7 @@ $audtype = @("","","","","","","","","","", "","","","","","","","","","", "",""
 $audname = @("","","","","","","","","","", "","","","","","","","","","", "","","","","","","","","","")
 $audlang = @("","","","","","","","","","", "","","","","","","","","","", "","","","","","","","","","")
 
-$a =  @('\| \+ Track', 
+$a =  @('\| \+ Track',
         '\|  \+ Track number: \d+ \(track ID for mkvmerge & mkvextract: (\d+)\)',
         '\|  \+ Track type: ([a-z]+)',    # 2
         '\|  \+ Language: ([a-z]+)',      #3
@@ -176,7 +178,7 @@ $a =  @('\| \+ Track',
         '\|  \+ Name: (.*)',              #7
         '\|   \+ Channels: (\d+)'         #8
         '\|  \+ Default duration: [\d\:\.]+ \(([\.\d]+) frames/field.*',
-        '\| \+ EbmlVoid', 
+        '\| \+ EbmlVoid',
         '\|   \+ Pixel width: (\d+)',     #11
         '\|   \+ Pixel height: (\d+)',    #12
         '\|\+ Segment tracks',       #13
@@ -184,7 +186,7 @@ $a =  @('\| \+ Track',
         '\|  \+ Codec.* \(HEVC profile: Main 10 .*\)',   #15
         '\|\+ Segment information'       #16
 
- 
+
      )
 
 $state = 1
@@ -227,7 +229,7 @@ foreach ($line in $info)
         {
             if ( $line -match $a[1] ) {
                 $track = $matches[1]
-            }    
+            }
             elseif ( $line -match $a[2] ) {
                 $tracktype = $matches[1]
                 if ($chatty) {
@@ -266,7 +268,7 @@ foreach ($line in $info)
                         $state = 40
                     }
                 }
-            }               
+            }
         }
         # Subtitle Track
         20
@@ -284,7 +286,7 @@ foreach ($line in $info)
             }
             elseif ( $line -match $a[4] ) {
                 $subdef[$useidx] =  if ($matches[1] -eq "1") { 1 } else { 0 }
-            }    
+            }
         }
         # Audio Track
         30
@@ -305,9 +307,9 @@ foreach ($line in $info)
             }
             elseif ( $line -match $a[8] ) {                      # Audio Channels...
                 $audchannels[$useidx] = $matches[1]
- 
+
             }
-        }        
+        }
         # Video Track
         40
         {
@@ -340,7 +342,7 @@ foreach ($line in $info)
             }
             if ( $line -match $a[15] ) {
                 $yuv420p10le = $true
-            }      
+            }
         }
     }
 }
@@ -374,7 +376,7 @@ for ($j = 0; $j -lt $audio.length; $j++)
 {
     if (($audio[$j] -ne 0) ) {
         if ($atracks) {
-            $atracks += "," 
+            $atracks += ","
         }
         $atracks += [string]$audio[$j]
     }
@@ -384,7 +386,7 @@ for ($j = 0; $j -lt $subtitles.length; $j++)
 {
     if (($subtitles[$j] -ne 0)) {
         if ($stracks) {
-            $stracks += "," 
+            $stracks += ","
         }
         $stracks += [string]$subtitles[$j]
     }
@@ -409,12 +411,12 @@ for ($j = 0; $j -lt $audio.length; $j++)
             $uselang = "eng"
         }
         $usename = $audname[$j]
-        AudioOut $audio[$j] $uselang $usename $i 0
+        AudioOut $audio[$j] $uselang $usename 0
         $order += ",0:" + $audio[$j]
         if ($async) {
             MergeOut "--sync"
             MergeOut ([string]$audio[$j] + ":" + $async)
-        } 
+        }
 
     }
 }
@@ -426,7 +428,7 @@ for ($j = 0; $j -lt $subidx; $j++)
     if ($ssync) {
         MergeOut "--sync"
         MergeOut ([string]$subtitles[$j] + ":" + $ssync)
-    } 
+    }
     $order += ",0:" + $subtitles[$j]
 }
 
@@ -454,6 +456,21 @@ if ($bt709) {
     MergeOut "--colour-primaries"
     MergeOut "0:1"
 }
+if  ($maxcll -ne "") {
+    if ($maxcll -match "(\d+),(\d+)") {
+        MergeOut "--max-content-light"
+        $a = "0:" + $matches[1]
+        MergeOut $a
+        MergeOut "--max-frame-light"
+        $a = "0:" + $matches[2]
+        MergeOut $a
+    }
+    else {
+        Write-Host -ForegroundColor Red "ERROR: Can't parse -maxcll ($maxcll)"
+        Exit(3)
+    }
+}
+
 MergeOut "("
 FileNameOut $input_video
 MergeOut ")"
@@ -466,8 +483,8 @@ MergeOut "--track-order"
 MergeOutLast ("1:0" + $order)
 MergeOutLiteral "]"
 
-$arg = "`"@" + $global:file + "`""
-$arg = "@" + $global:file 
+
+$arg = "@" + $global:file
 
 Write-Output $global:mkvmerge $arg
 & $global:mkvmerge $arg
