@@ -12,4 +12,4 @@ encode a.mkv -crf 17 -tune animation
 
 These scripts are most likely useful as a starting point for encoding the way you want to encode.
 
-To handle dolby vision encoding (the script uses dovi_tool and cm_analyze to do "baking") 
+To handle dolby vision encoding, you need to get  dovi_tool.  If you want to do "baking", you also need cm_analyze from dolby.
